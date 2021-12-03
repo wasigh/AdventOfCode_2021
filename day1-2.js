@@ -5,21 +5,21 @@ const ItemGrouper = require('./Classes/ItemGrouper.js')
 
 
 try {
-    const data = fs.readFileSync(path.dirname(__filename) + '/Day1/in1.txt', 'utf8')
-    var lIn = data.split("\n");
-    
-    console.log(lIn);
+	const data = fs.readFileSync(path.dirname(__filename) + '/Day1/in1.txt', 'utf8')
+	var lIn = data.split("\n");
 
-    var grouper = new ItemGrouper();
-    var lGrouped = grouper.map(lIn);
+	console.log(lIn);
 
-    console.log(lGrouped);
+	var grouper = new ItemGrouper();
+	var lGrouped = grouper.map(lIn);
 
-    var counter = new ListCounter();
-    bigger = counter.increased(lGrouped);
+	console.log(lGrouped);
 
-    console.log("Bigger:" + bigger);
+	var counter = new ListCounter();
+	bigger = counter.increased(lGrouped);
+
+	console.log("Bigger:" + bigger);
 
 } catch (err) {
-  console.error(err)
+	console.error(err)
 }
