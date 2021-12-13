@@ -99,9 +99,8 @@ class Parser {
     }
 
     inCorrectChar() {
-        return this.inCorrectChar;s
+        return this.inCorrectChar;
     }
-
 }
 
 
