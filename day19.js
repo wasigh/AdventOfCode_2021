@@ -1,9 +1,10 @@
+const { on } = require('events');
 const fs = require('fs')
 const path = require('path');
 
 
 function matrixDot(m1, m2) {
-    
+
     //https://www.mathsisfun.com/algebra/matrix-multiplying.html
 
     var a = (m1[0] * m2[0]) + (m1[1] * m2[3]) + (m1[2] * m2[6]);
@@ -18,12 +19,11 @@ function matrixDot(m1, m2) {
     var h = (m1[6] * m2[1]) + (m1[7] * m2[4]) + (m1[8] * m2[7]);
     var i = (m1[6] * m2[2]) + (m1[7] * m2[5]) + (m1[8] * m2[8]);
 
-    return [a,b,c,d,e,f,g,h,i];
+    return [a, b, c, d, e, f, g, h, i];
 
 }
 
-function calcTransformMatrices()
-{
+function calcTransformMatrices() {
     var cos = [1, 0, -1, 0];
     var sin = [0, 1, 0, -1];
 
@@ -81,8 +81,7 @@ function calcTransformMatrices()
 }
 
 
-function invertMatrix(matrix)
-{
+function invertMatrix(matrix) {
     return []
 }
 
@@ -97,6 +96,12 @@ class Scanner {
     addPoint(point) {
 
         for (var i = 0; i < this.points.length; i++) {
+            var other = this.points[i];
+            if (point.same(other))
+                return;
+        }
+
+        for (var i = 0; i < this.points.length; i++) {
             point.distanceTo(this.points[i]);
 
         }
@@ -104,18 +109,14 @@ class Scanner {
 
     }
 
-    rotate(matrix)
-    {
-        for(var i = 0; i < this.points; i++)
-        {
+    rotate(matrix) {
+        for (var i = 0; i < this.points.length; i++) {
             this.points[i] = this.points[i].dotProduct(matrix);
         }
     }
 
-    transform(trans)
-    {
-        for(var i = 0; i < this.points; i++)
-        {
+    transform(trans) {
+        for (var i = 0; i < this.points.length; i++) {
             var p = this.points[i];
             this.points[i] = new point(
                 p.x + trans.x,
@@ -127,16 +128,21 @@ class Scanner {
 
     overlaps(scanner) {
 
-        var transform = null;
         var rotationPoint = null;
         var originPoint = null;
 
+        var found = false;
+
         for (var p = 0; p < this.points.length; p++) {
+
+            if (found)
+                break;
+
             for (var q = 0; q < scanner.points.length; q++) {
 
                 var p1 = this.points[p];
                 var p2 = scanner.points[q];
-                
+
                 if (p1.equalTo(p2)) {
                     console.log("match", p1.toString(), p2.toString());
                     // remove point from other scanner
@@ -153,7 +159,7 @@ class Scanner {
 
 
                         // the expectedpoint calculation goes wrong...
-                        
+
                         var deltaX = p1.x - originPoint.x;
                         var deltaY = p1.y - originPoint.y;
                         var deltaZ = p1.z - originPoint.z;
@@ -170,24 +176,22 @@ class Scanner {
                             p2.y - rotationPoint.y,
                             p2.z - rotationPoint.z
                         );
-                             
+
                         // https://en.wikipedia.org/wiki/Rotation_matrix
                         var matrices = calcTransformMatrices();
                         var match = null;
-                        for (var m = 0; m < matrices.length; m++)
-                        {
+                        for (var m = 0; m < matrices.length; m++) {
                             match = matrices[m];
                             var testPoint = normalizedPoint.dotProduct(match);
 
                             // add rotationPoint transform
                             testPoint = new point(
-                                 testPoint.x + rotationPoint.x,
-                                 testPoint.y + rotationPoint.y,
-                                 testPoint.z + rotationPoint.z
+                                testPoint.x + rotationPoint.x,
+                                testPoint.y + rotationPoint.y,
+                                testPoint.z + rotationPoint.z
                             )
 
-                            if (expectedPoint.same(testPoint))
-                            {
+                            if (expectedPoint.same(testPoint)) {
                                 console.log("found matrix", match);
                                 break;
                             }
@@ -195,16 +199,16 @@ class Scanner {
 
                         // calculate the correct positon for the scanner
                         // rotate the found point with the matrix and calc the transform
-                        
+
 
                         // how to find the start point for the scanner?
-                        
+
                         // the origin point should be adjsuted with the same matrix and calculated
                         // then the transform matrix should be calculated again
 
                         var origin = new point(
-                            0 - rotationPoint.x ,
-                            0 - rotationPoint.y ,
+                            0 - rotationPoint.x,
+                            0 - rotationPoint.y,
                             0 - rotationPoint.z,
                         )
                         origin = origin.dotProduct(match); // as seen from rotation point
@@ -215,22 +219,30 @@ class Scanner {
                             origin.y + originPoint.y,
                             origin.z + originPoint.z,
                         )
-                        
+
                         console.log("Scanner origin: " + origin.toString());
 
                         // rotate all points
-                        //scanner.rotate(match);
-                        //scanner.transform(trans);
+                        scanner.rotate(match);
+                        scanner.transform(origin);
                         // transform all points
-                        
+                        scanner.x = origin.x;
+                        scanner.y = origin.y;
+                        scanner.z = origin.z;
+
                         // add them to the first scanner rotated if not a double
-                        
+                        for (var p = 0; p < scanner.points.length; p++) {
+                            var pnt = scanner.points[p];
+                            this.addPoint(pnt);
+                        }
+                        found = true;
+                        break;
                     }
-
-
                 }
             }
         }
+
+        return found;
     }
 
     uniqueBeacons() {
@@ -281,8 +293,8 @@ class point {
         //if (matches > 0)
         //    console.log(matches);
 
-        //return (matches >= 11); // to find 12 matches we need this beacon to match plus 11 others
-        return matches > 1;
+        return (matches >= 11); // to find 12 matches we need this beacon to match plus 11 others
+        //return matches > 1;
     }
 
     dotProduct(matrix) {
@@ -293,21 +305,27 @@ class point {
         return new point(a, b, c);
     }
 
-    same(otherPoint)
-    {
+    same(otherPoint) {
         return this.x == otherPoint.x && this.y == otherPoint.y && this.z == otherPoint.z;
     }
 
-    toString()
-    {
-        return "[" + this.x + ", "+ this.y + ", "+ this.z + "]";
+    toString() {
+        return "[" + this.x + ", " + this.y + ", " + this.z + "]";
+    }
+
+    manhattanDistance(point) {
+        var a = Math.abs(this.x - point.x);
+        var b = Math.abs(this.y - point.y);
+        var c = Math.abs(this.z - point.z);
+
+        return a + b + c;
     }
 
 }
 
 
 try {
-    const data = fs.readFileSync(path.dirname(__filename) + '/Day19/in.example2.txt', 'utf8')
+    const data = fs.readFileSync(path.dirname(__filename) + '/Day19/in.txt', 'utf8')
     var lIn = data.split("\n");
 
 
@@ -324,7 +342,7 @@ try {
     //     console.log(p1.dotProduct(m).toString(), p2.dotProduct(m).toString(), p3.dotProduct(m).toString())
     // }
 
-   
+
     this.scanners = [];
     currentScanner = new Scanner(0, 0, 0);
     this.scanners.push(currentScanner);
@@ -346,19 +364,43 @@ try {
 
     //console.log(this.scanners);
 
-    for (var x = 0; x < this.scanners.length; x++) {
-        for (var y = x + 1; y < this.scanners.length; y++) {
-            console.log("Checking scanners", x, y);
-            this.scanners[x].overlaps(this.scanners[y]);
+
+
+
+    var origins = [];
+    var firstScanner = this.scanners.splice(0, 1)[0];
+
+    origins.push(new point(firstScanner.x, firstScanner.y, firstScanner.y));
+
+    while (this.scanners.length > 0) {
+        for (var x = 0; x < this.scanners.length; x++) {
+            var scanner = this.scanners[x];
+            if (firstScanner.overlaps(scanner)) {
+                console.log("overlap found for:", x + 2);
+
+                origins.push(new point(scanner.x, scanner.y, scanner.z));
+                this.scanners.splice(x, 1);
+
+            }
         }
     }
 
-    var count = 0;
-    for (var x = 0; x < this.scanners.length; x++) {
-        count += this.scanners[x].uniqueBeacons();
-    }
-    console.log(count);
 
+    console.log("Beacons: " + firstScanner.uniqueBeacons());
+
+    var distance = 0;
+    for (var x = 0; x< origins.length; x++)
+    {
+        for (var y = x + 1; y< origins.length; y++)
+        {
+            var dist = origins[x].manhattanDistance(origins[y]);
+            dist = Math.abs(dist);
+            console.log(x,y,dist);
+            distance = Math.max(distance, dist);
+        }   
+    }
+
+    console.log("Manhatten: " + distance);
 
 } catch (err) {
     console.error(err)
