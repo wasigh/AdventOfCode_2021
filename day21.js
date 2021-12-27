@@ -72,8 +72,8 @@ unpack = function (val) {
 try {
 
     // count pos from 0 - 9
-    var pos1 = 4 - 1;
-    var pos2 = 8 - 1;
+    var pos1 = 3 - 1;
+    var pos2 = 7 - 1;
 
     var score1 = 0;
     var score2 = 0;
@@ -107,6 +107,9 @@ try {
     // console.log("Player1", score1, dice.rolls * score1);
     // console.log("Player2", score2, dice.rolls * score2);
 
+    var a = unpack(284676);
+
+
     var startUni = new universe();
     startUni.score1 = score1;
     startUni.score2 = score2;
@@ -114,11 +117,12 @@ try {
     startUni.pos2 = pos2;
 
 
-    var possibleRolls = [];
+    var possibleRolls = Array(10);
+    possibleRolls.fill(0);
     for (var d1 = 1; d1 <= 3; d1++) {
         for (var d2 = 1; d2 <= 3; d2++) {
             for (var d3 = 1; d3 <= 3; d3++) {
-                possibleRolls.push(d1 + d2 + d3);
+                possibleRolls[d1 + d2 + d3] += 1;
             }
         }
     }
@@ -126,53 +130,139 @@ try {
     console.log(possibleRolls);
 
 
-    // bepaal voor elke roll het aantal punten voor die speler inclusief een slimme cache
-    // bereken hoeveel universes er zijn
-
-    // pos, score + wie er aan de beurt is
-
-    // [player1 pos] [player2 pos] [player1 score] [player 2 score]
-
-    // loop trough all possibble positions?
+    // houdt een lijst bij per player
+    // eerst player 1 dan player2
+    // wanneer player1 geweest is gaat nieuwe universe naar player2.
+    // houdt het aantal universes bij dat in dezelfde staat is.
 
 
-    var player1 = [];
-    var player2 = [];
+    var player1 = {};
+    var player2 = {};
 
-    for (var i = 0; i < 24; i++) {
-        player1[i] = [];
-        player2[i] = [];
-    }
+    player1["_" + startUni.pack()] = 1;
 
-    player1[score1][" " + startUni.pack()] = 1;
+    var loop = 0
+    while (true) {
 
-    for (var score = 0; score < 21; score++) {
-        var scoresPlayer1 = player1[score];
+        var bInjectedNew = false;
 
-        if (scoresPlayer1) {
-            for (var key in scoresPlayer1) {
-                if (scoresPlayer1.hasOwnProperty(key)) {
-                    var val = scoresPlayer1[key];
-                    var curUni = unpack(parseInt(key));
+        for (var key in player1) {
+            if (player1.hasOwnProperty(key)) {
+                var val = player1[key];
 
+                var uniPacked = parseInt(key.substring(1))
+                var curUni = unpack(uniPacked);
+
+                if (curUni.score1 < 21) {
+                    delete player1[key];
+                    bInjectedNew = true;
+                    
                     for (var r = 0; r < possibleRolls.length; r++) {
-                        var points = possibleRolls[r];
+                        var points = r;
+                        var universes = possibleRolls[r] * val;
+                        
+                        if (universes == 0)
+                            continue;
+
                         var p2Uni = curUni.newUniverseP1(points);
                         var pack = p2Uni.pack();
 
-                        var p2Score = p2Uni.score2;
-                        if (player2[p2Score]["" + pack])
+                        if (p2Uni.score1 < 21)
                         {
-                            player2[p2Score]["" + pack] += val;
+                            if (player2["_" + pack]) {
+                                player2["_" + pack] += universes;
+                            }
+                            else {
+                                player2["_" + pack] = universes;
+                            }
                         }
                         else{
-                            player2[p2Score]["" + pack] = val;
+                            if (player1["_" + pack]) {
+                                player1["_" + pack] += universes;
+                            }
+                            else {
+                                player1["_" + pack] = universes;
+                            }
                         }
                     }
                 }
             }
         }
+
+
+        // Player 2
+        for (var key in player2) {
+            if (player2.hasOwnProperty(key)) {
+                var val = player2[key];
+                var uniPacked = parseInt(key.substring(1))
+                var curUni = unpack(uniPacked);
+
+                if (curUni.score2 < 21) {
+
+                    delete player2[key];
+                    bInjectedNew = true;
+
+                    for (var r = 0; r < possibleRolls.length; r++) {
+                        
+                        var points = r;
+                        var universes = possibleRolls[r] * val;
+
+                        if (universes == 0)
+                            continue;
+                        
+                        var p1Uni = curUni.newUniverseP2(points);
+                        var pack = p1Uni.pack();
+
+                        if (p1Uni.score2 < 21)
+                        {
+                            if (player1["_" + pack]) {
+                                player1["_" + pack] += universes;
+                            }
+                            else {
+                                player1["_" + pack] = universes;
+                            }
+                        }
+                        else{
+                            if (player2["_" + pack]) {
+                                player2["_" + pack] += universes;
+                            }
+                            else {
+                                player2["_" + pack] = universes;
+                            }
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+        if (!bInjectedNew)
+                break;
+        console.log("Loop", loop++);
     }
+
+    console.log("Endgame");
+
+
+    var scoresp1 = 0;
+    var scoresp2 = 0;
+    
+    for (var key in player1) {
+        if (player1.hasOwnProperty(key)) {
+            var val = player1[key];
+            scoresp1 += val;
+        }
+    }
+    for (var key in player2) {
+        if (player2.hasOwnProperty(key)) {
+            var val = player2[key];
+            scoresp2 += val;
+        }
+    }
+    
+    console.log(scoresp1, scoresp2);
+    console.log(Math.max(scoresp2, scoresp1));
 
 
 } catch (err) {
