@@ -232,9 +232,6 @@ add y w
 add y 2
 mul y x
 add z y
-
-
-
 inp w
 mul x 0
 add x z
