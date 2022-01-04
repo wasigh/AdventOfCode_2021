@@ -246,7 +246,7 @@ mul y x
 add y 1
 mul z y
 mul y 0
-add y w 
+add y w
 add y 2
 mul y x
 add z y

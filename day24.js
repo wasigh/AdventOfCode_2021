@@ -7,165 +7,107 @@ class ALU {
     y = 0;
     z = 0;
 
-    inputsRead = 0;
+    usedInput = "";
 
-     addInstruction(instruction)
-     {
-        var newFunction = this.operaratorFunction(instruction);
-        this[instruction.operand1] = newFunction;
-     }
+    writeval(register, val) {
 
-     operaratorFunction(instruction)
-     {
+        val = parseInt(val);
 
-        var op = instruction.op;
-        var operand1 = instruction.operand1;
-        var operand2 = instruction.operand2;
+        switch (register) {
+            case "w":
+                this.w = val;
+                break;
+            case "x":
+                this.x = val;
+                break;
+            case "y":
+                this.y = val;
+                break;
+            case "z":
+                this.z = val;
+                break;
+        }
+    }
 
-            switch (op) {
-                case "inp":
+    getval(register) {
+        switch (register) {
+            case "w":
+                return this.w;
+            case "x":
+                return this.x;
+            case "y":
+                return this.y;
+            case "z":
+                return this.z;
+        }
+        return parseInt(register);
+    }
 
-                    var index = this.inputsRead;
+    copy() {
+        var c = new ALU();
+        c.w = this.w;
+        c.x = this.x;
+        c.y = this.y;
+        c.z = this.z;
+        c.usedInput = this.usedInput;
+        return c;
+    }
 
-                    var func = (input) => {return this.readInput(index, input)};
-                    this.inputsRead++;
-                    return func;
-                    break;
-                case "add":
+    isValid()
+    {
+        return !isNaN(this.w) &&
+                !isNaN(this.x) &&
+                !isNaN(this.y) &&
+                !isNaN(this.z);
+    }
 
-                    var val1 = this.getval(operand1);
-                    var val2 = this.getval(operand2);
-                    
-                    var func = (input) => {
-
-                        var x = val1;
-                        var y = val2;
-
-                        if (typeof val1 == "function")
-                            x = val1(input);
-                        if (typeof val2 == "function")
-                            y = val2(input);
-
-                        return parseInt(x) + parseInt(y);
-                    };
-                    return func;
-                    break;
-                case "mul":
-                    var val1 = this.getval(operand1);
-                    var val2 = this.getval(operand2);
-                    
-                    if (val1 == 0 || val2 == 0)
-                        return 0; 
-
-                    var func = (input) => {
-
-                        var x = val1;
-                        var y = val2;
-                     
-
-                        if (typeof val1 == "function")
-                            x = val1(input);
-                        if (typeof val2 == "function")
-                            y = val2(input);
-
-                        return parseInt(x) * parseInt(y);
-                    };
-                    return func;
-                    break;
-                case "div":
-
-                    var val1 = this.getval(operand1);
-                    var val2 = this.getval(operand2);
-                                        
-                    var func = (input) => {
-
-                        var x = val1;
-                        var y = val2;
-
-                        if (typeof val1 == "function")
-                            x = val1(input);
-                        if (typeof val2 == "function")
-                            y = val2(input);
-
-                        var val = parseInt(x) / parseInt(y);
-                        val = val > 0 ? Math.floor(val) : Math.ceil(val);
-
-                        return val;
-                    };
-                    return func;
-
-                    break;
-                case "mod":
-
-                    var val1 = this.getval(operand1);
-                    var val2 = this.getval(operand2);
-                    
-                    var func = (input) => {
-
-                        var x = val1;
-                        var y = val2; 
-
-                        if (typeof val1 == "function")
-                            x = val1(input);
-                        if (typeof val2 == "function")
-                            y = val2(input);
-
-                        return parseInt(x) % parseInt(y);
-                    };
-                    return func;
-
-                    break;
-                case "eql":
-
-                    var val1 = this.getval(operand1);
-                    var val2 = this.getval(operand2);
-                    
-                    var func = (input) => {
-
-                        var x = val1;
-                        var y = val2;
-
-                        if (typeof val1 == "function")
-                            x = val1(input);
-                        if (typeof val2 == "function")
-                            y = val2(input);
-
-                        var val = parseInt(x) == parseInt(y) ? 1 : 0;
-                        return val;
-                    };
-                    return func;
-
-                                        
-                    break;
-            }
-     }
-
-     getval(operand)
-     {
-         if ("wyzx".indexOf(operand) != -1)
-         {
-             return this[operand];
-         }
-         return operand;
-     }
-
-     readInput(index, input)
-     {
-        console.log("ReadInput", index);
-        return parseInt(input[index]);
-     }
-
+    toString() {
+        return "w:" + this.w + "x:" + this.x + "y:" + this.y + "z:" + this.z;
+    }
 }
 
 class Instruction {
     constructor(sInstruction) {
         this.instruction = sInstruction;
-        var parts = this.instruction.split(" ");
-        this.op = parts[0];
-        this.operand1 = parts[1];
-        this.operand2 = parts[2] || "";
     }
 
+    execute(alu, inputs) {
+        var parts = this.instruction.split(" ");
+        var op = parts[0];
+        var operand1 = parts[1];
+        var operand2 = parts[2] || "";
+
+        switch (op) {
+            case "inp":
+                var input = parseInt(inputs[0]);
+                inputs = inputs.substring(1);
+                alu.writeval(operand1, input);
+                break;
+            case "add":
+                var val = alu.getval(operand1) + alu.getval(operand2);
+                alu.writeval(operand1, val);
+                break;
+            case "mul":
+                var val = alu.getval(operand1) * alu.getval(operand2);
+                alu.writeval(operand1, val);
+                break;
+            case "div":
+                var val = alu.getval(operand1) / alu.getval(operand2);
+                val = val > 0 ? Math.floor(val) : Math.ceil(val);
+                alu.writeval(operand1, val);
+                break;
+            case "mod":
+                var val = alu.getval(operand1) % alu.getval(operand2);
+                alu.writeval(operand1, val);
+                break;
+            case "eql":
+                var val = alu.getval(operand1) == alu.getval(operand2) ? 1 : 0;
+                alu.writeval(operand1, val);
+                break;
+        }
+
+        return inputs;
+    }
 }
 
 
@@ -175,31 +117,54 @@ try {
     var lIn = data.split("\n");
 
     var instructions = [];
-    var alu = new ALU();    
+    var group = -1;
 
     for (var i = 0; i < lIn.length; i++) {
         var line = lIn[i].trim();
         var instruction = new Instruction(line);
-        instructions.push(instruction);
-        alu.addInstruction(instruction);
+        if (line.substring(0, 3) == "inp") {
+            group++;
+            instructions[group] = [];
+        }
+
+        instructions[group].push(instruction);
     }
 
-    //console.log("z = ", alu.z("99999999999999"));
-    console.log("z = ", alu.z("19999999999999"));
-    console.log("z = ", alu.z("91999999999999"));
-    console.log("z = ", alu.z("99199999999999"));
-    console.log("z = ", alu.z("99919999999999"));
-    console.log("z = ", alu.z("99991999999999"));
-    console.log("z = ", alu.z("99999199999999"));
-    console.log("z = ", alu.z("99999919999999"));
-    console.log("z = ", alu.z("99999991999999"));
-    console.log("z = ", alu.z("99999999199999"));
-    console.log("z = ", alu.z("99999999919999"));
-    console.log("z = ", alu.z("99999999991999"));
-    console.log("z = ", alu.z("99999999999199"));
-    console.log("z = ", alu.z("99999999999919"));
-    console.log("z = ", alu.z("99999999999991"));
     
+
+    var targetZ = 0;
+    var inputs= [];
+
+    for (var group = instructions.length - 1; group > 0; group-=100)
+    {
+        console.log("calculating group", group, "from:" , instructions.length);
+        
+        for (var nr = 9; nr > 0; nr--) {
+            var input = nr.toString();
+            if (input.indexOf("0") !== -1) {
+                continue;
+            }
+        
+            for (z = 0; z <= 26; z ++)
+            {
+                var alu = new ALU();
+                alu.z = z;
+                
+                for (var i = 0; i < instructions[group].length; i++) {
+                    var instr = instructions[group][i];
+                    instr.execute(alu, input);
+                }
+                
+                if (alu.z == targetZ)
+                {
+                    console.log("Valid digit", nr);
+                    console.log(nr, z, alu.z);
+                    //targetZ = z;
+                    inputs.push(nr);
+                }
+            }
+        }
+    }
 
 } catch (err) {
     console.error(err)
