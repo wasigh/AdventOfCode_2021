@@ -110,7 +110,84 @@ class Instruction {
     }
 }
 
+function findPossibleIns(instructions, totalString, pos)
+{
+    var targetZ= [];
 
+    for (var nr = 9; nr > 0; nr--) 
+    {
+        var input = nr.toString();
+        if (input.indexOf("0") !== -1) {
+            continue;
+        }
+    
+        for (z = 0; z <= 26; z ++)
+        {
+            var alu = new ALU();
+            alu.z = z;
+            
+            for (var i = 0; i < instructions.length; i++) {
+                var instr = instructions[i];
+                instr.execute(alu, input);
+            }
+                            
+            var preZ = alu.z >= 26? Math.floor(alu.z / 26): alu.z;
+            
+            if (preZ == 0)
+            {
+                //console.log(nr, z, alu.z, preZ);
+                //console.log("Valid digit", nr);
+                if (!targetZ[z])
+                {
+                    var s = totalString.split("");
+                    s[pos] = nr;
+                    targetZ[z] = s.join("");
+                }
+            }
+        }
+    }
+    return targetZ;
+}
+
+function findInForOutput(instructions, targets,  totalString, pos)
+{
+    var ins = [];
+
+    for (var nr = 9; nr > 0; nr--) {
+        var input = nr.toString();
+        if (input.indexOf("0") !== -1) {
+            continue;
+        }
+    
+        for (z = 0; z <= 26; z ++)
+        {
+            var alu = new ALU();
+            alu.z = z;
+            
+            for (var i = 0; i < instructions.length; i++) {
+                var instr = instructions[i];
+                instr.execute(alu, input);
+            }
+                            
+            var preZ = alu.z;
+            
+            if (targets[preZ] && targets[preZ].length)
+            {
+                var s = targets[preZ].split("");
+                s[pos] = nr;
+                ins[nr]= s.join("");
+            }
+        }
+    }
+    return ins;
+}
+
+function findFor(a, b)
+{
+    var ins = findPossibleIns(instructions[a], used, a );
+    var out = findInForOutput(instructions[b], ins, used, b);
+    console.log(out);
+}
 
 try {
     const data = fs.readFileSync(path.dirname(__filename) + '/Day24/in.txt', 'utf8')
@@ -130,41 +207,34 @@ try {
         instructions[group].push(instruction);
     }
 
-    
 
-    var targetZ = 0;
-    var inputs= [];
+    for (var i = 0; i < instructions.length; i++){
+        var group = instructions[i];
+        console.log(group[4], ".", group[5], ".", group[15] );
 
-    for (var group = instructions.length - 1; group > 0; group-=100)
-    {
-        console.log("calculating group", group, "from:" , instructions.length);
-        
-        for (var nr = 9; nr > 0; nr--) {
-            var input = nr.toString();
-            if (input.indexOf("0") !== -1) {
-                continue;
-            }
-        
-            for (z = 0; z <= 26; z ++)
-            {
-                var alu = new ALU();
-                alu.z = z;
-                
-                for (var i = 0; i < instructions[group].length; i++) {
-                    var instr = instructions[group][i];
-                    instr.execute(alu, input);
-                }
-                
-                if (alu.z == targetZ)
-                {
-                    console.log("Valid digit", nr);
-                    console.log(nr, z, alu.z);
-                    //targetZ = z;
-                    inputs.push(nr);
-                }
-            }
-        }
     }
+    
+    var used = "..............";
+
+
+    // 0  - 13
+    findFor(13,0)
+    // 1 - 12
+    findFor(12,1)
+    // 2 - 3
+    findFor(3,2)
+    // 4 - 11
+    findFor(11,4)
+    // 5 - 6
+    findFor(6,5)
+    // 6 - 7
+    findFor(8,7)
+    // 8 - 9
+    findFor(10,9)
+   
+    var ins = findPossibleIns(instructions[13], used, last );
+    var out = findInForOutput(instructions[0], ins, used, 1);
+    console.log(out);
 
 } catch (err) {
     console.error(err)
